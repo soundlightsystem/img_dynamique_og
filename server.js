@@ -1,5 +1,5 @@
 const express = require("express");
-const puppeteer = require("puppeteer");
+const chromium = require("chrome-aws-lambda");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,20 +30,33 @@ app.get("/og-image", async (req, res) => {
     </html>
   `;
 
-  const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
-  });
+  let browser = null;
 
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1200, height: 630 });
-  await page.setContent(html);
+  try {
+    browser = await chromium.puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: { width: 1200, height: 630 },
+      executablePath: await chromium.executablePath,
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
+    });
 
-  const buffer = await page.screenshot({ type: "png" });
-  await browser.close();
+    const page = await browser.newPage();
+    await page.setContent(html);
 
-  res.set("Content-Type", "image/png");
-  res.send(buffer);
+    const buffer = await page.screenshot({ type: "png" });
+
+    res.set("Content-Type", "image/png");
+    res.send(buffer);
+
+  } catch (error) {
+    console.error("Error generating image:", error);
+    res.status(500).send("Erreur lors de la génération de l'image");
+  } finally {
+    if (browser !== null) {
+      await browser.close();
+    }
+  }
 });
 
 app.listen(PORT, () => {
