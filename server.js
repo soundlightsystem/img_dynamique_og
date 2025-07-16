@@ -33,13 +33,16 @@ app.get("/og-image", async (req, res) => {
   let browser = null;
 
   try {
+    console.log("Launching browser...");
     browser = await chromium.puppeteer.launch({
       args: chromium.args,
       defaultViewport: { width: 1200, height: 630 },
       executablePath: await chromium.executablePath,
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
+      timeout: 30000, // 30 secondes pour le lancement
     });
+    console.log("Browser launched.");
 
     const page = await browser.newPage();
     await page.setContent(html);
